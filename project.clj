@@ -7,6 +7,10 @@
   :main ^:skip-aot advent-of-code-2021.core
   :target-path "target/%s"
   :profiles {:day01 {:main advent-of-code-2021.day01}
+             :day02 {:main advent-of-code-2021.day02}
+             :day03 {:main advent-of-code-2021.day03}
              :uberjar {:aot :all
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
-  :aliases {"day01" ["with-profile" "day01" "run"]})
+  :aliases {"day01" ["with-profile" "day01" "run"]
+            "day02" ["with-profile" "day02" "run"]
+            "day03" ["with-profile" "day03" "run"]})
