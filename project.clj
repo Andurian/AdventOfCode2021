@@ -9,8 +9,15 @@
   :profiles {:day01 {:main advent-of-code-2021.day01}
              :day02 {:main advent-of-code-2021.day02}
              :day03 {:main advent-of-code-2021.day03}
+             :day04 {:main advent-of-code-2021.day04}
+             :day05 {:main advent-of-code-2021.day05}
+             :day06 {:main advent-of-code-2021.day06}
              :uberjar {:aot :all
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
-  :aliases {"day01" ["with-profile" "day01" "run"]
-            "day02" ["with-profile" "day02" "run"]
-            "day03" ["with-profile" "day03" "run"]})
+  :aliases {"day01" ["with-profile" "day01" "run"];
+            "day02" ["with-profile" "day02" "run"];
+            "day03" ["with-profile" "day03" "run"];
+            "day04" ["with-profile" "day04" "run"];
+            "day05" ["with-profile" "day05" "run"];
+            "day06" ["with-profile" "day06" "run"];
+            })

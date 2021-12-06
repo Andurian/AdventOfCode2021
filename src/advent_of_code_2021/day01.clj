@@ -2,11 +2,11 @@
   (:require [advent-of-code-2021.util :refer [read-numbers]])
   (:gen-class))
 
-(defn window [values start size]
+(defn- window [values start size]
   (let [indices (range start (+ start size))]
     (reduce + (map #(values %) indices))))
 
-(defn count-increasing [values window-size]
+(defn- count-increasing [values window-size]
   (let [indices (range (- (count values) window-size))
         get-window (fn [start] (window values start window-size))
         counter (fn [index] (let [left (get-window index)

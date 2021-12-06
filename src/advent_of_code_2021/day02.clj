@@ -1,23 +1,24 @@
 (ns advent-of-code-2021.day02
-  (:require [advent-of-code-2021.util :refer [read-lines]])
+  (:require [advent-of-code-2021.util as util]
+            [clojure.string as str])
   (:gen-class))
 
-(defn count [keyword tokens]
+(defn- count [keyword tokens]
   (let [fn-filter (fn [pair] (= (pair 0) keyword))
         fn-map (fn [pair] (read-string (pair 1)))]
     (reduce + (map fn-map (filter fn-filter tokens)))))
 
-(defn find-position [instructions]
-  (let [tokens (map (fn [instruction] (clojure.string/split instruction #" ")) instructions)
+(defn- find-position [instructions]
+  (let [tokens (map (fn [instruction] (str/split instruction #" ")) instructions)
         forward (count "forward" tokens)
         down (count "down" tokens)
         up (count "up" tokens)]
 
     [forward (- down up)]))
 
-(defn find-position2 [instructions]
+(defn- find-position2 [instructions]
   (loop [pos [0 0]
-         tokens (map (fn [instruction] (clojure.string/split instruction #" ")) instructions)]
+         tokens (map (fn [instruction] (str/split instruction #" ")) instructions)]
     (if (empty? tokens) pos
         (recur (let [command ((first tokens) 0)
                      value (read-string ((first tokens) 1))]
@@ -26,9 +27,9 @@
                    "up" [(pos 0) (- (pos 1) value)]
                    "down" [(pos 0) (+ (pos 1) value)])) (rest tokens)))))
 
-(defn find-position3 [instructions]
+(defn- find-position3 [instructions]
   (loop [pos [0 0 0]
-         tokens (map (fn [instruction] (clojure.string/split instruction #" ")) instructions)]
+         tokens (map (fn [instruction] (str/split instruction #" ")) instructions)]
     (if (empty? tokens) pos
         (recur (let [command ((first tokens) 0)
                      value (read-string ((first tokens) 1))]
@@ -41,7 +42,7 @@
   ([] (println "Using default input")
       (day02 "day_02/input_01.txt"))
   ([filename]
-   (let [lines (read-lines filename)
+   (let [lines (util/read-lines filename)
          pos (find-position3 lines)
         ]
 
