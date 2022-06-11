@@ -4,10 +4,10 @@
             [clojure.set])
   (:gen-class))
 
-(defn all-uppercase? [s]
+(defn- all-uppercase? [s]
   (= s (clojure.string/upper-case s)))
 
-(defn to-adjacency-list [lines]
+(defn- to-adjacency-list [lines]
   (let [pairs (vec (map #(vec (clojure.string/split % #"-")) lines))
         nodes (set (apply concat pairs))
         adjacency-list (into (sorted-map) (map #(vector % (vector)) nodes))]
@@ -25,7 +25,7 @@
               reachable-from-right-new (conj reachable-from-right left-node)]
           (recur (assoc (assoc current-list left-node reachable-from-left-new) right-node reachable-from-right-new) (rest remaining-pairs)))))))
 
-(defn valid-candidate-1 [candidate visited]
+(defn- valid-candidate-1 [candidate visited]
   (or (all-uppercase? candidate) (not (contains? (set visited) candidate))))
 
 (defn valid-candidate-2 [candidate visited]
@@ -41,43 +41,37 @@
       (not is-start)
       can-visit-small-cave-twice))))
 
-(defn all-steps [path connections step-filter]
+(defn- all-steps [path connections step-filter]
   (let [current (last path)
         candidates (get connections current)
         valid-candidates (filter #(step-filter % path) candidates)
         new-lists (map #(conj path %) valid-candidates)]
     (if (= current "end") [path] new-lists)))
 
-(defn step-all [paths adjacency-list step-filter]
+(defn- step-all [paths adjacency-list step-filter]
   (set (mapcat #(vec (all-steps % adjacency-list step-filter)) paths)))
 
-(defn all-paths [connections step-filter]
+(defn- all-paths [connections step-filter]
   (loop [current [["start"]]]
     (if (= (count current) (count (filter #(= (last %) "end") current)))
       current
       (recur (step-all current connections step-filter)))))
 
-(defn print-paths [paths]
+#_{:clj-kondo/ignore [:unused-private-var]}
+(defn- print-paths [paths]
   (let [strs (sort (vec (map #(clojure.string/join "," %) paths)))]
     (println (clojure.string/join "\n" strs))))
 
-(defn task01 [lines]
+(defn- task [lines fn-valid-candidate]
   (let [connections (to-adjacency-list lines)
-        paths (all-paths connections valid-candidate-1)]
-    (println "Num paths:" (count paths))))
-
-(defn task02 [lines]
-  (let [connections (to-adjacency-list lines)
-        paths (all-paths connections valid-candidate-2)]
-    (println "Num paths:" (count paths))))
+        paths (all-paths connections fn-valid-candidate)]
+    (count paths)))
 
 (defn day12
-  ([] (println "Using default input")
-      (day12 "input_day_12.txt"))
+  ([] (day12 "input_day_12.txt"))
   ([filename]
    (let [lines (read-lines filename)]
-     (task01 lines);
-     (task02 lines);
-     )))
+     (println "Solution Day 12-1:" (task lines valid-candidate-1))
+     (println "Solution Day 12-2:" (task lines valid-candidate-2)))))
 
-(defn -main [] (day12))
+(defn -main [] (time (day12)))

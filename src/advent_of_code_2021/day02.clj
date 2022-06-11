@@ -1,24 +1,24 @@
 (ns advent-of-code-2021.day02
-  (:require [advent-of-code-2021.util as util]
-            [clojure.string as str])
+  (:require [advent-of-code-2021.util :as util]
+            [clojure.string :as str])
   (:gen-class))
 
-(defn- count [keyword tokens]
+(defn- count-tokens [keyword tokens]
   (let [fn-filter (fn [pair] (= (pair 0) keyword))
         fn-map (fn [pair] (read-string (pair 1)))]
     (reduce + (map fn-map (filter fn-filter tokens)))))
 
-(defn- find-position [instructions]
-  (let [tokens (map (fn [instruction] (str/split instruction #" ")) instructions)
-        forward (count "forward" tokens)
-        down (count "down" tokens)
-        up (count "up" tokens)]
+(defn- find-position-task1 [instructions]
+  (let [tokens (map  #(str/split % #" ") instructions)
+        forward (count-tokens "forward" tokens)
+        down (count-tokens "down" tokens)
+        up (count-tokens "up" tokens)]
 
     [forward (- down up)]))
 
-(defn- find-position2 [instructions]
+(defn- find-position-task1-alternative [instructions]
   (loop [pos [0 0]
-         tokens (map (fn [instruction] (str/split instruction #" ")) instructions)]
+         tokens (map  #(str/split % #" ") instructions)]
     (if (empty? tokens) pos
         (recur (let [command ((first tokens) 0)
                      value (read-string ((first tokens) 1))]
@@ -27,9 +27,9 @@
                    "up" [(pos 0) (- (pos 1) value)]
                    "down" [(pos 0) (+ (pos 1) value)])) (rest tokens)))))
 
-(defn- find-position3 [instructions]
+(defn- find-position-task2 [instructions]
   (loop [pos [0 0 0]
-         tokens (map (fn [instruction] (str/split instruction #" ")) instructions)]
+         tokens (map  #(str/split % #" ") instructions)]
     (if (empty? tokens) pos
         (recur (let [command ((first tokens) 0)
                      value (read-string ((first tokens) 1))]
@@ -39,15 +39,14 @@
                    "down" [(pos 0) (pos 1) (+ (pos 2) value)])) (rest tokens)))))
 
 (defn day02
-  ([] (println "Using default input")
-      (day02 "day_02/input_01.txt"))
+  ([] (day02 "input_day_02.txt"))
   ([filename]
    (let [lines (util/read-lines filename)
-         pos (find-position3 lines)
-        ]
+         pos1a (find-position-task1 lines)
+         pos1b (find-position-task1-alternative lines)
+         pos2 (find-position-task2 lines)]
+     (println (format "Solution Day 02-1a: %d (Position is %s)" (apply * pos1a) (str pos1a)))
+     (println (format "Solution Day 02-1b: %d (Position is %s)" (apply * pos1b) (str pos1b)))
+     (println (format "Solution Day 02-2:  %d (Position is %s)" (* (pos2 0) (pos2 1)) (str pos2))))))
 
-     (println "Position is: [" (pos 0) "," (pos 1) "]")
-     (println "Answer is:" (* (pos 0) (pos 1)))
-     )))
-
-(defn -main [] (day02))
+(defn -main [] (time (day02)))

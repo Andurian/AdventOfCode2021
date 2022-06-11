@@ -4,10 +4,10 @@
             [clojure.set])
   (:gen-class))
 
-(defn ->algorithm [str]
+(defn- ->algorithm [str]
   (vec (map #(if (= \. %) 0 1) str)))
 
-(defn ->image [lines]
+(defn- ->image [lines]
   (let [rows (count lines)
         cols (count (first lines))]
     (loop [lit-pixels #{}
@@ -19,13 +19,13 @@
         :else (let [new-pixels (if (= \. (nth (nth lines r) c)) lit-pixels (conj lit-pixels [r c]))]
                 (recur new-pixels r (inc c)))))))
 
-(defn parse-input [lines]
+(defn- parse-input [lines]
   (let [algorithm-str (first lines)
         image-lines (drop 2 lines)]
     {:algo (->algorithm algorithm-str)
      :img (->image image-lines)}))
 
-(defn increase-img-size [img]
+(defn- increase-img-size [img]
   (let [new-rows (+ 2 (:rows img))
         new-cols (+ 2 (:cols img))
         new-pixels (set (map #(vector (inc (% 0)) (inc (% 1))) (:pixels img)))
@@ -33,12 +33,12 @@
         rn (if (= \1 (:outside img)) (set (map #(vector (dec new-rows) %) (range new-cols))) #{})
         c0 (if (= \1 (:outside img)) (set (map #(vector % 0) (range new-rows))) #{})
         cn (if (= \1 (:outside img)) (set (map #(vector % (dec new-cols)) (range new-cols))) #{})]
-  {:rows (+ 2 (:rows img))
-   :cols (+ 2 (:cols img))
-   :outside (:outside img)
-   :pixels (clojure.set/union new-pixels r0 rn c0 cn)}))
+    {:rows (+ 2 (:rows img))
+     :cols (+ 2 (:cols img))
+     :outside (:outside img)
+     :pixels (clojure.set/union new-pixels r0 rn c0 cn)}))
 
-(defn get-pixel [r c img]
+(defn- get-pixel [r c img]
   (cond
     (or
      (< r 0)
@@ -47,7 +47,7 @@
      (>= c (:cols img))) (:outside img)
     :else (if (contains? (:pixels img) [r c]) \1 \0)))
 
-(defn ->region [r c]
+(defn- ->region [r c]
   [[(dec r) (dec c)]
    [(dec r) c]
    [(dec r) (inc c)]
@@ -58,15 +58,16 @@
    [(inc r) c]
    [(inc r) (inc c)]])
 
-(defn ->binary [r c img]
+(defn- ->binary [r c img]
   (let [region (->region r c)]
     (clojure.string/join (map #(get-pixel (% 0) (% 1) img) region))))
 
-(defn ->index [r c img]
+(defn- ->index [r c img]
   (let [string (->binary r c img)]
     (Integer/parseInt string 2)))
 
-(defn img-to-string [img]
+#_{:clj-kondo/ignore [:unused-private-var]}
+(defn- img-to-string [img]
   (loop [s [] r 0 c 0]
     (cond
       (>= r (:rows img)) (clojure.string/join s)
@@ -74,7 +75,7 @@
       :else (let [new-s (conj s (if (contains? (:pixels img) [r c]) \# \.))]
               (recur new-s r (inc c))))))
 
-(defn step
+(defn- step
   ([img algo n]
    (loop [current-img img i 0]
      (cond
@@ -92,40 +93,25 @@
                     (>= c cols) (recur p (inc r) 0)
                     :else (let [index (->index r c img-resized)
                                 new-p (if (= 1 (nth algo index)) (conj p [r c]) p)]
-                           ;(println r c "->" index "->" (nth algo index) "-->" new-p)
                             (recur new-p r (inc c)))))]
      {:rows rows
       :cols cols
       :outside outside
       :pixels pixels})))
 
-
-
-(defn task01 [lines]
+(defn- task [lines n]
   (let [input (parse-input lines)
         img (:img input)
         algo (:algo input)
-        img2 (step img algo 2)
-        ]
-    (println (img-to-string img2))
-    (println "Number of lit pixels:" (count (:pixels img2)))
-    ))
-
-(defn task02 [lines]
-  (let [input (parse-input lines)
-        img (:img input)
-        algo (:algo input)
-        img2 (step img algo 50)]
-    (println (img-to-string img2))
-    (println "Number of lit pixels:" (count (:pixels img2)))))
+        img2 (step img algo n)]
+    (count (:pixels img2))))
 
 (defn day20
-  ([] (println "Using default input")
-      (day20 "input_day_20.txt"))
+  ([]
+   (day20 "input_day_20.txt"))
   ([filename]
    (let [lines (read-lines filename)]
-     (time (task01 lines));
-     (time (task02 lines));
-     )))
+     (println "Solution Day 20-1:" (task lines 2))
+     (println "Solution Day 20-2:" (task lines 50)))))
 
-(defn -main [] (day20))
+(defn -main [] (time (day20)))

@@ -4,38 +4,38 @@
             [clojure.set])
   (:gen-class))
 
-(def overlapping-beacons 12)
+(def ^:private overlapping-beacons 12)
 
-(def orientations [[:x  :y  :z]
-                   [:x  :z  :-y]
-                   [:x  :-y :-z]
-                   [:x  :-z :y]
-                   [:-x :-y :z]
-                   [:-x :z  :y]
-                   [:-x :y  :-z]
-                   [:-x :-z :-y]
-                   [:y  :z  :x]
-                   [:y  :x  :-z]
-                   [:y  :-z :-x]
-                   [:y  :-x :z]
-                   [:-y :-z :x]
-                   [:-y :x  :z]
-                   [:-y :z  :-x]
-                   [:-y :-x :-z]
-                   [:z  :x  :y]
-                   [:z  :y  :-x]
-                   [:z  :-x :-y]
-                   [:z  :-y :x]
-                   [:-z :-x :y]
-                   [:-z :y  :x]
-                   [:-z :x  :-y]
-                   [:-z :-y :-x]])
+(def ^:private orientations [[:x  :y  :z]
+                             [:x  :z  :-y]
+                             [:x  :-y :-z]
+                             [:x  :-z :y]
+                             [:-x :-y :z]
+                             [:-x :z  :y]
+                             [:-x :y  :-z]
+                             [:-x :-z :-y]
+                             [:y  :z  :x]
+                             [:y  :x  :-z]
+                             [:y  :-z :-x]
+                             [:y  :-x :z]
+                             [:-y :-z :x]
+                             [:-y :x  :z]
+                             [:-y :z  :-x]
+                             [:-y :-x :-z]
+                             [:z  :x  :y]
+                             [:z  :y  :-x]
+                             [:z  :-x :-y]
+                             [:z  :-y :x]
+                             [:-z :-x :y]
+                             [:-z :y  :x]
+                             [:-z :x  :-y]
+                             [:-z :-y :-x]])
 
-(defn ->coords [line]
+(defn- ->coords [line]
   (let [tokens (clojure.string/split line #",")]
     (vec (map #(Integer/parseInt %) tokens))))
 
-(defn ->scanner [lines]
+(defn- ->scanner [lines]
   (let [id-line (first lines)
         coord-lines (rest lines)
         id (Integer/parseInt (apply str (filter #(Character/isDigit %) id-line)))]
@@ -43,12 +43,12 @@
      :detections (vec (map ->coords coord-lines))};
     ))
 
-(defn ->scanners [lines]
+(defn- ->scanners [lines]
   (let [partitions (filter #(> (count %) 1) (partition-by empty? lines))
         scanners (map ->scanner partitions)]
     (vec scanners)))
 
-(defn distance [a b]
+(defn- distance [a b]
   (let [dx (- (b 0) (a 0))
         dy (- (b 1) (a 1))
         dz (- (b 2) (a 2))]
@@ -58,38 +58,38 @@
       (* dy dy)
       (* dz dz)))))
 
-(defn distance-3d [a b]
+(defn- distance-3d [a b]
   [(- (b 0) (a 0))
    (- (b 1) (a 1))
    (- (b 2) (a 2))])
 
-(defn distance-manhattan [a b]
+(defn- distance-manhattan [a b]
   (let [d (distance-3d a b)]
     (apply + (map #(Math/abs %) d))))
 
-(def axis-transforms {:x #(% 0)
-                      :-x #(* -1 (% 0))
-                      :y #(% 1)
-                      :-y #(* -1 (% 1))
-                      :z #(% 2)
-                      :-z #(* -1 (% 2))})
+(def ^:private axis-transforms {:x #(% 0)
+                                :-x #(* -1 (% 0))
+                                :y #(% 1)
+                                :-y #(* -1 (% 1))
+                                :z #(% 2)
+                                :-z #(* -1 (% 2))})
 
-(defn rotate [coord axes]
+(defn- rotate [coord axes]
   (let [transforms (map axis-transforms axes)]
     (vec (map #(% coord) transforms))))
 
-(defn do-transform [detection transform]
+(defn- do-transform [detection transform]
   (let [rotated (rotate detection (:orientation transform))
         r2 (mapv + rotated (:offset transform))]
     r2))
 
-(defn do-transform-seq [detections transform]
+(defn- do-transform-seq [detections transform]
   (vec (map #(do-transform % transform) detections)))
 
-(defn matches-needed [n]
+(defn- matches-needed [n]
   (/ (* (dec n) n) 2))
 
-(defn intra-distances [detections]
+(defn- intra-distances [detections]
   (loop [distances []
          i 0
          j 1]
@@ -98,7 +98,7 @@
       (>= j (count detections)) (recur distances (inc i) (inc (inc i)))
       :else (recur (conj distances (distance (detections i) (detections j))) i (inc j)))))
 
-(defn matchable? [scanner1 scanner2]
+(defn- matchable? [scanner1 scanner2]
   (let [detections1 (:detections scanner1)
         detections2 (:detections scanner2)
         distances1 (set (intra-distances detections1))
@@ -106,7 +106,7 @@
         intersection (clojure.set/intersection distances1 distances2)]
     (if (>= (count intersection) (matches-needed overlapping-beacons)) intersection nil)))
 
-(defn matchable-to
+(defn- matchable-to
   ([scanners]
    (loop [current-map {}
           i 0]
@@ -126,21 +126,21 @@
                                    (conj current-matchable j))]
                (recur new-matchable (inc j)))))))
 
-(defn inter-set-distances [detections1 detections2]
+(defn- inter-set-distances [detections1 detections2]
   (loop [distances [] i 0 j 0]
     (cond
       (>= i (count detections1)) distances
       (>= j (count detections2)) (recur distances (inc i) 0)
       :else (recur (conj distances (distance-3d (detections1 i) (detections2 j))) i (inc j)))))
 
-(defn correct-rotation [fixed-detections detections axes]
+(defn- correct-rotation [fixed-detections detections axes]
   (let [transform {:orientation axes :offset [0 0 0]}
         rotated-detections (do-transform-seq detections transform)
         distances (inter-set-distances rotated-detections fixed-detections)
         freq (filter (fn [[_ val]] (>= val overlapping-beacons)) (frequencies distances))]
     (if (= 1 (count freq)) ((first freq) 0) nil)))
 
-(defn find-transform [fixed-detections detections]
+(defn- find-transform [fixed-detections detections]
   (loop [i 0]
     (cond
       (>= i (count orientations)) nil
@@ -154,17 +154,17 @@
                     (throw "finding a transformation failed"))
                   transform))))))
 
-(defn rotate-seq
+(defn- rotate-seq
   [n coll]
   (let [c (count coll)]
     (take c (drop (mod n c) (cycle coll)))))
 
-(defn find-unifiable-pair [fixed-ids free-id matchable]
+(defn- find-unifiable-pair [fixed-ids free-id matchable]
   (let [matchable-ids  (get matchable free-id)
         inter (clojure.set/intersection (set matchable-ids) (set fixed-ids))]
     (if (empty? inter) nil (first inter))))
 
-(defn unify-scanners [scanners]
+(defn- unify-scanners [scanners]
   (let [matchables (matchable-to scanners)]
     (loop [fixed-scanners {(:id (first scanners)) (:detections (first scanners))}
            fixed-scanner-positions {(:id (first scanners)) [0 0 0]}
@@ -183,7 +183,7 @@
                               new-fixed-scanner-positions (assoc fixed-scanner-positions (:id free-scanner) (:offset transform))]
                           (recur new-fixed-scanners new-fixed-scanner-positions (rest free-scanners)))))))))
 
-(defn max-distance [positions]
+(defn- max-distance [positions]
   (loop [max-dist 0
          i 0
          j 1]
@@ -193,22 +193,16 @@
       :else (let [new-dist (distance-manhattan (positions i) (positions j))]
               (recur (max max-dist new-dist) i (inc j))))))
 
-(defn task01-and-02 [lines]
-  (let [scanners (->scanners lines)
-        res (unify-scanners scanners)
-        unified-scanners (res 0)
-        unified-offsets (res 1)
-        unified-positions (vec (vals unified-offsets))
-        unified-detections (apply concat (vals unified-scanners))]
-    (println "Total number of beacons:" (count (set unified-detections)))
-    (println "Max scanner distance:" (max-distance (vec unified-positions)))))
-
 (defn day19
-  ([] (println "Using default input")
-      (day19 "input_day_19.txt"))
+  ([] (day19 "input_day_19.txt"))
   ([filename]
-   (let [lines (read-lines filename)]
-     (time (task01-and-02 lines));
-     )))
+   (let [lines (read-lines filename) scanners (->scanners lines)
+         res (unify-scanners scanners)
+         unified-scanners (res 0)
+         unified-offsets (res 1)
+         unified-positions (vec (vals unified-offsets))
+         unified-detections (apply concat (vals unified-scanners))]
+     (println "Solution Day 19-1:" (count (set unified-detections)))
+     (println "Solution Day 19-2:" (max-distance (vec unified-positions))))))
 
-(defn -main [] (day19))
+(defn -main [] (time (day19)))

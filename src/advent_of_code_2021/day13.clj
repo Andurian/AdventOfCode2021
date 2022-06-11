@@ -3,16 +3,16 @@
             [clojure.string])
   (:gen-class))
 
-(defn ->coordinates [line]
+(defn- ->coordinates [line]
   (let [tokens (clojure.string/split line #",")]
     (vec (map #(Integer/parseInt %) tokens))))
 
-(defn ->instruction [line]
+(defn- ->instruction [line]
   (let [axis-str (last (clojure.string/split line #" "))
         tokens (clojure.string/split axis-str #"=")]
     {:axis (first tokens) :value (Integer/parseInt (last tokens))}))
 
-(defn print-points [points]
+(defn- print-points [points]
   (let [max-x (apply max (map first points))
         max-y (apply max (map last points))
         cols (inc max-x)
@@ -28,14 +28,14 @@
                    (recur (assoc current idx "*") (inc i)))))]
     (println (clojure.string/join (apply concat (interpose "\n" (partition cols repr)))))))
 
-(defn parse-input [lines]
+(defn- parse-input [lines]
   (let [coordinate-lines (take-while #(not (= "" %)) lines)
         instruction-lines (take-last (- (count lines) (+ 1 (count coordinate-lines))) lines)
         coordinates (map ->coordinates coordinate-lines)
         instructions (map ->instruction instruction-lines)]
     {:points (vec coordinates) :instructions (vec instructions)}))
 
-(defn fold [points instruction]
+(defn- fold [points instruction]
   (let [ax (if (= (:axis instruction) "x") 0 1)
         mirror-at (:value instruction)]
     (loop [current-points points
@@ -49,30 +49,29 @@
                                current-point)]
           (recur (vec (assoc current-points i mirrored-point)) (inc i)))))))
 
-(defn fold-all [input]
+(defn- fold-all [input]
   (loop [current-points (:points input)
          i 0]
     (if (>= i (count (:instructions input)))
       current-points
       (recur (fold current-points (nth (:instructions input) i)) (inc i)))))
 
-(defn task01 [lines]
+(defn- task01 [lines]
   (let [input (parse-input lines)
         p1 (fold (:points input) (first (:instructions input)))]
-   (println "Visible after one fold:" (count (set p1)))))
+    (println "Solution Day 13-1:" (count (set p1)))))
 
-(defn task02 [lines]
+(defn- task02 [lines]
   (let [input (parse-input lines)
         result (fold-all input)]
+    (println "Solution Day 13-2:")
     (print-points result)))
 
 (defn day13
-  ([] (println "Using default input")
-      (day13 "input_day_13.txt"))
+  ([] (day13 "input_day_13.txt"))
   ([filename]
    (let [lines (read-lines filename)]
-     (task01 lines);
-     (task02 lines);
-     )))
+     (task01 lines)
+     (task02 lines))))
 
-(defn -main [] (day13))
+(defn -main [] (time (day13)))

@@ -4,7 +4,8 @@
             [clojure.set])
   (:gen-class))
 
-(defn print-field [field]
+#_{:clj-kondo/ignore [:unused-private-var]}
+(defn- print-field [field]
   (let [val-to-char (fn [value] (cond
                                   (= :default (:status value)) (str (:level value))
                                   (= :flashing (:status value)) "*"
@@ -12,7 +13,7 @@
         row-to-str (fn [row] (clojure.string/join " " (map val-to-char row)))]
     (println (clojure.string/join  "\n" (map row-to-str field)))))
 
-(defn get-value
+(defn- get-value
   ([coords field] (get-value (coords 0) (coords 1) field))
   ([r c field]
    (let [rows (count field)
@@ -24,19 +25,16 @@
        (>= c cols) nil
        :else ((field r) c)))))
 
-(defn get-size [field]
-  [(count field) (count (field 0))])
-
-(defn to-matrix [lines]
+(defn- to-matrix [lines]
   (let [to-map-obj (fn [value] {:level value :status :default})
         parse-line (fn [line] (vec (map #(to-map-obj (Integer/parseInt (Character/toString %))) line)))]
     (vec (map parse-line lines))))
 
-(defn all-coords
+(defn- all-coords
   ([field] (all-coords (count field) (count (field 0))))
   ([rows cols] (vec (map vec (partition cols (for [r (range rows) c (range cols)] (vector r c)))))))
 
-(defn neighbor-coords
+(defn- neighbor-coords
   ([coords field] (neighbor-coords (coords 0) (coords 1) field))
   ([r c field]
    (let [coords [[(dec r) (dec c)]
@@ -49,12 +47,12 @@
                  [(inc r) (inc c)]]]
      (filter #(not (nil? (get-value % field))) coords))))
 
-(defn neighbors
+(defn- neighbors
   ([coords field] (neighbors (coords 0) (coords 1) field))
   ([r c field]
    (map #(get-value % field) (neighbor-coords r c field))))
 
-(defn step [func field]
+(defn- step [func field]
   (let [rows (count field)
         cols (count (field 0))
         coords (all-coords field)
@@ -62,12 +60,12 @@
                    (vec (map #(func (field-row %) (neighbors (coords-row %) field)) (range cols))))]
     (vec (map #(step-row (field %) (coords %)) (range rows)))))
 
-(defn stepfn-increase [value neighbors]
+(defn- stepfn-increase [value _]
   (if (= 9 (:level value))
     {:level 0 :status :flashing}
     {:level (+ 1 (:level value)) :status :default}))
 
-(defn stepfn-propagate-flash [value neighbors]
+(defn- stepfn-propagate-flash [value neighbors]
   (cond
     (= :flashed (:status value)) value
     (= :flashing (:status value)) (assoc value :status :flashed)
@@ -78,19 +76,19 @@
         {:level 0 :status :flashing}
         {:level new-level :status :default}))))
 
-(defn stepfn-return-to-default [value neighbors]
+(defn- stepfn-return-to-default [value _]
   (assoc value :status :default))
 
-(defn count-in-field [field ff]
+(defn- count-in-field [field ff]
   (let [check-row (fn [row]
                     (reduce + (map #(if (ff (:status %)) 1 0) row)))]
     (reduce + (map check-row field))))
 
 
-(defn any-flashing? [field]
+(defn- any-flashing? [field]
   (> (count-in-field field #(= :flashing %)) 0))
 
-(defn step-full [field]
+(defn- step-full [field]
   (let [increased-field (step stepfn-increase field)]
     (loop [current increased-field]
       (cond
@@ -99,17 +97,17 @@
         :else
         (recur (step stepfn-propagate-flash current))))))
 
-(defn task01 [lines]
+(defn- task01 [lines]
   (let [field (to-matrix lines)]
     (loop [idx 0
            current field
            num-flashes 0]
       (if (>= idx 100)
-        (println "Total Number of flashes:" num-flashes)
+        num-flashes
         (let [step-result (step-full current)]
           (recur (inc idx) (:field step-result) (+ num-flashes (:flashes step-result))))))))
 
-(defn task02 [lines]
+(defn- task02 [lines]
   (let [field (to-matrix lines)]
     (loop [idx 1
            current field]
@@ -117,16 +115,14 @@
             new-field (:field step-result)
             num-flashes (:flashes step-result)]
         (if (= 100 num-flashes)
-          (println "Synchronized after:" idx)
+          idx
           (recur (inc idx) new-field))))))
 
 (defn day11
-  ([] (println "Using default input")
-      (day11 "input_day_11.txt"))
+  ([] (day11 "input_day_11.txt"))
   ([filename]
    (let [lines (read-lines filename)]
-     (task01 lines);
-     (task02 lines);
-     )))
+     (println "Solution Day 11-1:" (task01 lines))
+     (println "Solution Day 11-2:" (task02 lines)))))
 
-(defn -main [] (day11))
+(defn -main [] (time (day11)))

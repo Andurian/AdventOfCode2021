@@ -15,12 +15,10 @@
     (reduce + (map counter indices))))
 
 (defn day01
-  ([] (println "Using default input")
-      (day01 "day_01/input_01.txt"))
+  ([] (day01 "input_day_01.txt"))
   ([filename]
    (let [measurements (read-numbers filename)]
-
      (println "Solution Day 01-1:" (count-increasing measurements 1))
      (println "Solution Day 01-2:" (count-increasing measurements 3)))))
 
-(defn -main [] (day01))
+(defn -main [] (time (day01)))

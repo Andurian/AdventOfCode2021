@@ -5,7 +5,7 @@
 
 (def ^:private inf Double/POSITIVE_INFINITY)
 
-(defn update-costs
+(defn- update-costs
   "Returns costs updated with any shorter paths found to curr's unvisisted
   neighbors by using curr's shortest path"
   [g costs unvisited curr]
@@ -18,7 +18,7 @@
      costs
      (get g curr))))
 
-(defn dijkstra
+(defn- dijkstra
   "Returns a map of nodes to minimum cost from src using Dijkstra algorithm.
   Graph is a map of nodes to map of neighboring nodes and associated cost.
   Optionally, specify destination node to return once cost is known"
@@ -41,7 +41,7 @@
          (recur next-costs next-node (disj unvisited next-node)))))))
 
 
-(defn get-value
+(defn- get-value
   ([coords field] (get-value (coords 0) (coords 1) field))
   ([r c field]
    (let [rows (count field)
@@ -53,22 +53,22 @@
        (>= c cols) nil
        :else ((field r) c)))))
 
-(defn neighbor-coords
+(defn- neighbor-coords
   ([coords field] (neighbor-coords (coords 0) (coords 1) field))
   ([r c field]
    (let [coords [[(dec r) c] [r (dec c)] [r (inc c)] [(inc r) c]]]
      (filter #(not (nil? (get-value % field))) coords))))
 
-(defn neighbors
+(defn- neighbors
   ([coords field] (neighbors (coords 0) (coords 1) field))
   ([r c field]
    (map #(get-value % field) (neighbor-coords r c field))))
 
-(defn ->mat [lines]
+(defn- ->mat [lines]
   (let [->vec (fn [line] (vec (map #(Integer/parseInt (str %)) line)))]
     (vec (map ->vec lines))))
 
-(defn ->matbig [lines]
+(defn- ->matbig [lines]
   (let [f (fn [val d] (loop [x (+ val d)]
                         (if (<= x 9) x (recur (- x 9)))))
         ->vec (fn [line] (vec (map #(Integer/parseInt (str %)) line)))
@@ -78,7 +78,7 @@
         transform-firstlines (fn [mat d] (vec (map #(transform-bigrow % d) mat)))]
     (vec (mapcat #(transform-firstlines firstlines %) (range 5)))))
 
-(defn ->graph [mat]
+(defn- ->graph [mat]
   (let [rows (count mat)
         cols (count (mat 0))]
     (loop [current {[-1 -1] {[0 0] 1}}
@@ -97,29 +97,32 @@
             :else
             (recur new r (inc c))))))))
 
-(defn task01 [lines]
+(defn- task01 [lines]
   (let [rows (count lines)
         cols (count (lines 0))
-        graph (->graph (->mat lines))]
-    (println (dijkstra graph [0 0] [(dec rows) (dec cols)]))))
+        graph (->graph (->mat lines))
+        target [(dec rows) (dec cols)]]
+    (get (dijkstra graph [0 0] target) target)))
 
-(defn task02 [lines]
+#_{:clj-kondo/ignore [:unused-private-var]}
+(defn- task02 [lines]
   (let [mat (->matbig lines)
         rows (count mat)
         cols (count (mat 0))
-        graph (->graph mat)]
-    (println (dijkstra graph [0 0] [(dec rows) (dec cols)]))))
+        graph (->graph mat)
+        target [(dec rows) (dec cols)]]
+    (get (dijkstra graph [0 0] target) target)))
 
 (defn day15
-  ([] (println "Using default input")
-      (day15 "input_day_15.txt"))
+  ([] (day15 "input_day_15.txt"))
   ([filename]
    (let [lines (read-lines filename)]
-     (time (task01 lines));
+     (println "Solution Day 15-1:" (task01 lines))
+     (println "Solution Day 15-2: 2838 (Precomputed since actually running the program takes 3 hours)")
      ; Don't run this unless you have 3 hours to spare
      ; {[499 499] 2838}
      ; "Elapsed time: 1.05314533394E7 msecs"
-     ;(time (task02 lines));
+     ;(time (println "Solution Day 15-2:" (task02 lines)));
      )))
 
-(defn -main [] (day15))
+(defn -main [] (time (day15)))

@@ -1,11 +1,11 @@
 (ns advent-of-code-2021.day22
-  (:require [advent-of-code-2021.util :refer [read-lines]]
+  (:require [advent-of-code-2021.util :refer [read-lines get-time]]
             [clojure.string]
             [clojure.set])
   (:gen-class))
 
 ;; Parsing input
-(defn parse-line [line]
+(defn- parse-line [line]
   (let [[instruction coordinates] (clojure.string/split line #" ")
         coord-tokens (clojure.string/split coordinates #",")
         parse-coord (fn [token] (let [strs (clojure.string/split (clojure.string/join (drop 2 token)) #"\.\.")]
@@ -15,11 +15,11 @@
      :y (parse-coord (nth coord-tokens 1))
      :z (parse-coord (nth coord-tokens 2))}))
 
-(defn parse-input [lines]
+(defn- parse-input [lines]
   (vec (map parse-line lines)))
 
 ;; Task 1
-(defn ->set [instruction]
+(defn- ->set [instruction]
   (let [limit (fn [[a b]] [(max a -50) (min b 50)])
         [x1 x2] (limit (:x instruction))
         [y1 y2] (limit (:y instruction))
@@ -34,7 +34,7 @@
         (> x x2) (recur current x1 (inc y) z)
         :else (recur (conj current [x y z]) (inc x) y z)))))
 
-(defn build-naive [instructions]
+(defn- build-naive [instructions]
   (loop [current #{}
          to-process instructions]
     (cond
@@ -44,12 +44,11 @@
                   f (if (= :on i) clojure.set/union clojure.set/difference)]
               (recur (f current s) (rest to-process))))))
 
-(defn task-01 [instructions]
-  (let [result (build-naive instructions)]
-    (println (count result))))
+(defn- task-01 [instructions]
+  (count (build-naive instructions)))
 
 ;; Task 2
-(defn intersection [old-cube new-cube]
+(defn- intersection [old-cube new-cube]
   (let [state (if (= :off (:instruction old-cube)) :on :off)
         x [(max ((:x old-cube) 0) ((:x new-cube) 0))
            (min ((:x old-cube) 1) ((:x new-cube) 1))]
@@ -63,7 +62,7 @@
              (>= (z 1) (z 0)))
       candidate nil)))
 
-(defn what-to-add [cubes new-cube]
+(defn- what-to-add [cubes new-cube]
   (loop [to-process cubes
          to-add (if (= :on (:instruction new-cube)) [new-cube] [])]
     (if (empty? to-process)
@@ -71,14 +70,14 @@
       (let [inter (intersection (first to-process) new-cube)]
         (recur (rest to-process) (if (nil? inter) to-add (conj to-add inter)))))))
 
-(defn build-as-set [instructions]
+(defn- build-as-set [instructions]
   (loop [cubes []
          to-process instructions]
     (if (empty? to-process)
       cubes
       (recur (concat cubes (what-to-add cubes (first to-process))) (rest to-process)))))
 
-(defn count-cubes [cube]
+(defn- count-cubes [cube]
   (let [factor (if (= :on (:instruction cube)) 1 -1)
         x (:x cube)
         y (:y cube)
@@ -88,16 +87,15 @@
        (inc (- (y 1) (y 0)))
        (inc (- (z 1) (z 0))))))
 
-(defn count-all-cubes [cubes]
+(defn- count-all-cubes [cubes]
   (apply + (map count-cubes cubes)))
 
-(defn task-02 [instructions]
+(defn- task-02 [instructions]
   (let [result (build-as-set instructions)]
-    (println (count-all-cubes result));
-    ))
+    (count-all-cubes result)))
 
 ;; Task 1 in a more clever way
-(defn filter-at [instructions limit]
+(defn- filter-at [instructions limit]
   (let [coord-ok (fn [v] (and
                           (< (Math/abs (v 0)) limit)
                           (< (Math/abs (v 1)) limit)))
@@ -106,21 +104,21 @@
                                 (coord-ok (:z cube))))]
     (filter cube-ok instructions)))
 
-(defn task-01-as-set [instructions]
+(defn- task-01-as-set [instructions]
   (let [input (filter-at instructions 50)
         result (build-as-set input)]
-    (println (count-all-cubes result));
-    ))
+    (count-all-cubes result)))
 
 (defn day22
-  ([] (println "Using default input")
-      (day22 "input_day_22.txt"))
+  ([] (day22 "input_day_22.txt"))
   ([filename]
    (let [lines (read-lines filename)
-         instructions (parse-input lines)]
-     (time (task-01 instructions));
-     (time (task-01-as-set instructions));
-     (time (task-02 instructions));
-     )))
+         instructions (parse-input lines)
+         [time1a res1a] (get-time (task-01 instructions))
+         [time1b res1b] (get-time (task-01-as-set instructions))
+         [time2 res2] (get-time (task-02 instructions))]
+     (println (format "Solution Day 22-1a: %s (Time %f ms)" (str res1a) time1a))
+     (println (format "Solution Day 22-1b: %s (Time %f ms)" (str res1b) time1b))
+     (println (format "Solution Day 22-2:  %s (Time %f ms)" (str res2) time2)))))
 
 (defn -main [] (day22))

@@ -51,6 +51,7 @@
             "day15" ["with-profile" "day15" "run"];
             "day16" ["with-profile" "day16" "run"];
             "day17" ["with-profile" "day17" "run"];
+            "day18" ["with-profile" "day18" "run"];
             "day19" ["with-profile" "day19" "run"];
             "day20" ["with-profile" "day20" "run"];
             "day21" ["with-profile" "day21" "run"];

@@ -1,114 +1,114 @@
 (ns advent-of-code-2021.day23
-  (:require [clojure.set]
-            [clojure.pprint])
   (:gen-class))
 
 ; For testing purposes
-(def sample-graph {:hall [\. \. \. \. \.]
-                   \A [\B \B]
-                   \B [\A \A]})
+#_{:clj-kondo/ignore [:unused-private-var]}
+(def ^:private sample-graph {:hall [\. \. \. \. \.]
+                             \A [\B \B]
+                             \B [\A \A]})
 
 ; For testing purposes. This is how the move table ideally looks like for the sample graph
 ; Note that moves directly from one room to another are not strictly necessary but decrease the size of the search graph
-(def move-table {[[:hall 0] [\A 0]] {:cost 3 :way [[:hall 1]]}
-                 [[:hall 0] [\A 1]] {:cost 4 :way [[:hall 1] [\A 0]]}
-                 [[:hall 0] [\B 0]] {:cost 5 :way [[:hall 1] [:hall 2]]}
-                 [[:hall 0] [\B 1]] {:cost 6 :way [[:hall 1] [:hall 2] [\B 0]]}
+#_{:clj-kondo/ignore [:unused-private-var]}
+(def ^:private move-table {[[:hall 0] [\A 0]] {:cost 3 :way [[:hall 1]]}
+                           [[:hall 0] [\A 1]] {:cost 4 :way [[:hall 1] [\A 0]]}
+                           [[:hall 0] [\B 0]] {:cost 5 :way [[:hall 1] [:hall 2]]}
+                           [[:hall 0] [\B 1]] {:cost 6 :way [[:hall 1] [:hall 2] [\B 0]]}
 
-                 [[:hall 1] [\A 0]] {:cost 2 :way []}
-                 [[:hall 1] [\A 1]] {:cost 3 :way [[\A 0]]}
-                 [[:hall 1] [\B 0]] {:cost 4 :way [[:hall 2]]}
-                 [[:hall 1] [\B 1]] {:cost 5 :way [[:hall 2] [\B 0]]}
+                           [[:hall 1] [\A 0]] {:cost 2 :way []}
+                           [[:hall 1] [\A 1]] {:cost 3 :way [[\A 0]]}
+                           [[:hall 1] [\B 0]] {:cost 4 :way [[:hall 2]]}
+                           [[:hall 1] [\B 1]] {:cost 5 :way [[:hall 2] [\B 0]]}
 
-                 [[:hall 2] [\A 0]] {:cost 2 :way []}
-                 [[:hall 2] [\A 1]] {:cost 3 :way [[\A 0]]}
-                 [[:hall 2] [\B 0]] {:cost 2 :way []}
-                 [[:hall 2] [\B 1]] {:cost 3 :way [[\B 0]]}
+                           [[:hall 2] [\A 0]] {:cost 2 :way []}
+                           [[:hall 2] [\A 1]] {:cost 3 :way [[\A 0]]}
+                           [[:hall 2] [\B 0]] {:cost 2 :way []}
+                           [[:hall 2] [\B 1]] {:cost 3 :way [[\B 0]]}
 
-                 [[:hall 3] [\A 0]] {:cost 4 :way [[:hall 2]]}
-                 [[:hall 3] [\A 1]] {:cost 5 :way [[:hall 2] [\A 0]]}
-                 [[:hall 3] [\B 0]] {:cost 2 :way []}
-                 [[:hall 3] [\B 1]] {:cost 3 :way [[\B 0]]}
+                           [[:hall 3] [\A 0]] {:cost 4 :way [[:hall 2]]}
+                           [[:hall 3] [\A 1]] {:cost 5 :way [[:hall 2] [\A 0]]}
+                           [[:hall 3] [\B 0]] {:cost 2 :way []}
+                           [[:hall 3] [\B 1]] {:cost 3 :way [[\B 0]]}
 
-                 [[:hall 4] [\A 0]] {:cost 5 :way [[:hall 3] [:hall 2]]}
-                 [[:hall 4] [\A 1]] {:cost 6 :way [[:hall 3] [:hall 2] [\A 0]]}
-                 [[:hall 4] [\B 0]] {:cost 3 :way [[:hall 3]]}
-                 [[:hall 4] [\B 1]] {:cost 4 :way [[:hall 3] [\B 0]]}
+                           [[:hall 4] [\A 0]] {:cost 5 :way [[:hall 3] [:hall 2]]}
+                           [[:hall 4] [\A 1]] {:cost 6 :way [[:hall 3] [:hall 2] [\A 0]]}
+                           [[:hall 4] [\B 0]] {:cost 3 :way [[:hall 3]]}
+                           [[:hall 4] [\B 1]] {:cost 4 :way [[:hall 3] [\B 0]]}
 
-                 [[\A 0] [:hall 0]] {:cost 3 :way [[:hall 1]]}
-                 [[\A 0] [:hall 1]] {:cost 2 :way []}
-                 [[\A 0] [:hall 2]] {:cost 2 :way []}
-                 [[\A 0] [:hall 3]] {:cost 4 :way [[:hall 2]]}
-                 [[\A 0] [:hall 4]] {:cost 5 :way [[:hall 3] [:hall 2]]}
+                           [[\A 0] [:hall 0]] {:cost 3 :way [[:hall 1]]}
+                           [[\A 0] [:hall 1]] {:cost 2 :way []}
+                           [[\A 0] [:hall 2]] {:cost 2 :way []}
+                           [[\A 0] [:hall 3]] {:cost 4 :way [[:hall 2]]}
+                           [[\A 0] [:hall 4]] {:cost 5 :way [[:hall 3] [:hall 2]]}
 
-                 [[\A 0] [\B 0]] {:cost 4 :way [[:hall 2]]}
-                 [[\A 0] [\B 1]] {:cost 5 :way [[:hall 2] [\B 0]]}
+                           [[\A 0] [\B 0]] {:cost 4 :way [[:hall 2]]}
+                           [[\A 0] [\B 1]] {:cost 5 :way [[:hall 2] [\B 0]]}
 
-                 [[\A 1] [:hall 0]] {:cost 4 :way [[:hall 1] [\A 0]]}
-                 [[\A 1] [:hall 1]] {:cost 3 :way [[\A 0]]}
-                 [[\A 1] [:hall 2]] {:cost 3 :way [[\A 0]]}
-                 [[\A 1] [:hall 3]] {:cost 5 :way [[:hall 2] [\A 0]]}
-                 [[\A 1] [:hall 4]] {:cost 6 :way [[:hall 3] [:hall 2] [\A 0]]}
+                           [[\A 1] [:hall 0]] {:cost 4 :way [[:hall 1] [\A 0]]}
+                           [[\A 1] [:hall 1]] {:cost 3 :way [[\A 0]]}
+                           [[\A 1] [:hall 2]] {:cost 3 :way [[\A 0]]}
+                           [[\A 1] [:hall 3]] {:cost 5 :way [[:hall 2] [\A 0]]}
+                           [[\A 1] [:hall 4]] {:cost 6 :way [[:hall 3] [:hall 2] [\A 0]]}
 
-                 [[\A 1] [\B 0]] {:cost 5 :way [[\A 0] [:hall 2]]}
-                 [[\A 1] [\B 1]] {:cost 6 :way [[\A 0] [:hall 2] [\B 0]]}
+                           [[\A 1] [\B 0]] {:cost 5 :way [[\A 0] [:hall 2]]}
+                           [[\A 1] [\B 1]] {:cost 6 :way [[\A 0] [:hall 2] [\B 0]]}
 
-                 [[\B 0] [:hall 0]] {:cost 5 :way [[:hall 1] [:hall 2]]}
-                 [[\B 0] [:hall 4]] {:cost 3 :way [[:hall 3]]}
-                 [[\B 0] [:hall 1]] {:cost 4 :way [[:hall 2]]}
-                 [[\B 0] [:hall 2]] {:cost 2 :way []}
-                 [[\B 0] [:hall 3]] {:cost 2 :way []}
+                           [[\B 0] [:hall 0]] {:cost 5 :way [[:hall 1] [:hall 2]]}
+                           [[\B 0] [:hall 4]] {:cost 3 :way [[:hall 3]]}
+                           [[\B 0] [:hall 1]] {:cost 4 :way [[:hall 2]]}
+                           [[\B 0] [:hall 2]] {:cost 2 :way []}
+                           [[\B 0] [:hall 3]] {:cost 2 :way []}
 
-                 [[\B 0] [\A 0]] {:cost 4 :way [[:hall 2]]}
-                 [[\B 0] [\A 1]] {:cost 5 :way [[:hall 2] [\A 0]]}
+                           [[\B 0] [\A 0]] {:cost 4 :way [[:hall 2]]}
+                           [[\B 0] [\A 1]] {:cost 5 :way [[:hall 2] [\A 0]]}
 
-                 [[\B 1] [:hall 0]] {:cost 6 :way [[:hall 1] [:hall 2] [\B 0]]}
-                 [[\B 1] [:hall 1]] {:cost 5 :way [[:hall 2] [\B 0]]}
-                 [[\B 1] [:hall 2]] {:cost 3 :way [[\B 0]]}
-                 [[\B 1] [:hall 3]] {:cost 3 :way [[\B 0]]}
-                 [[\B 1] [:hall 4]] {:cost 4 :way [[:hall 3] [\B 0]]}
+                           [[\B 1] [:hall 0]] {:cost 6 :way [[:hall 1] [:hall 2] [\B 0]]}
+                           [[\B 1] [:hall 1]] {:cost 5 :way [[:hall 2] [\B 0]]}
+                           [[\B 1] [:hall 2]] {:cost 3 :way [[\B 0]]}
+                           [[\B 1] [:hall 3]] {:cost 3 :way [[\B 0]]}
+                           [[\B 1] [:hall 4]] {:cost 4 :way [[:hall 3] [\B 0]]}
 
-                 [[\B 1] [\A 0]] {:cost 5 :way [[\B 0] [:hall 2]]}
-                 [[\B 1] [\A 1]] {:cost 6 :way [[\B 0] [:hall 2] [\A 0]]}})
+                           [[\B 1] [\A 0]] {:cost 5 :way [[\B 0] [:hall 2]]}
+                           [[\B 1] [\A 1]] {:cost 6 :way [[\B 0] [:hall 2] [\A 0]]}})
 
 ; Cost table of how much steps it takes to move from one hall position to the entrance of a room
 ; This can definitely be calculated in some way but I'm just really tired of this task
-(def cost-table {[0 \A] 2
-                 [0 \B] 4
-                 [0 \C] 6
-                 [0 \D] 8
+(def ^:private cost-table {[0 \A] 2
+                           [0 \B] 4
+                           [0 \C] 6
+                           [0 \D] 8
 
-                 [1 \A] 1
-                 [1 \B] 3
-                 [1 \C] 5
-                 [1 \D] 7
+                           [1 \A] 1
+                           [1 \B] 3
+                           [1 \C] 5
+                           [1 \D] 7
 
-                 [2 \A] 1
-                 [2 \B] 1
-                 [2 \C] 3
-                 [2 \D] 5
+                           [2 \A] 1
+                           [2 \B] 1
+                           [2 \C] 3
+                           [2 \D] 5
 
-                 [3 \A] 3
-                 [3 \B] 1
-                 [3 \C] 1
-                 [3 \D] 3
+                           [3 \A] 3
+                           [3 \B] 1
+                           [3 \C] 1
+                           [3 \D] 3
 
-                 [4 \A] 5
-                 [4 \B] 3
-                 [4 \C] 1
-                 [4 \D] 3
+                           [4 \A] 5
+                           [4 \B] 3
+                           [4 \C] 1
+                           [4 \D] 3
 
-                 [5 \A] 7
-                 [5 \B] 5
-                 [5 \C] 3
-                 [5 \D] 1
+                           [5 \A] 7
+                           [5 \B] 5
+                           [5 \C] 3
+                           [5 \D] 1
 
-                 [6 \A] 8
-                 [6 \B] 6
-                 [6 \C] 4
-                 [6 \D] 2})
+                           [6 \A] 8
+                           [6 \B] 6
+                           [6 \C] 4
+                           [6 \D] 2})
 
-(defn print-graph [{hall :hall :as rest}]
+(defn- print-graph [{hall :hall :as rest}]
   (let [rooms (dissoc rest :hall)
         length-hall (+ (count hall) (count rooms))
         length-line (+ length-hall 2)
@@ -135,13 +135,13 @@
     (print "  ")
     (println (apply str (repeat (inc (* 2 (count rooms))) \#)))))
 
-(defn build-graph [rooms]
+(defn- build-graph [rooms]
   (let [length-hallway (+ 4 (dec (count rooms)))
         hallway (vec (repeat length-hallway \.))
         graph (assoc rooms :hall hallway)]
     graph))
 
-(defn room-entrance-indices [rooms]
+(defn- room-entrance-indices [rooms]
   (loop [entrance-map {}
          current (first (keys rooms))
          remaining (rest (keys rooms))]
@@ -150,7 +150,7 @@
       (let [idx (- (int current) (int \A))]
         (recur (assoc entrance-map current [(inc idx) (inc (inc idx))]) (first remaining) (rest remaining))))))
 
-(defn move-hall-to-room [hall-idx room room-idx entrance-left-idx entrance-right-idx]
+(defn- move-hall-to-room [hall-idx room room-idx entrance-left-idx entrance-right-idx]
   (let [[cost places] (cond
                         (some #(= hall-idx %) [entrance-left-idx entrance-right-idx]) [1 []]
                         (< hall-idx entrance-left-idx) [(get cost-table [hall-idx room])
@@ -162,13 +162,13 @@
 
 
 
-(defn build-move-table-hall-to-room [hall-length room depth entrance-left-idx entrance-right-idx]
+(defn- build-move-table-hall-to-room [hall-length room depth entrance-left-idx entrance-right-idx]
   (into {} (for [hall-idx (range hall-length)
                  room-idx (range depth)]
              (let [move (move-hall-to-room hall-idx room room-idx entrance-left-idx entrance-right-idx)]
                [[[:hall hall-idx] [room room-idx]] move]))))
 
-(defn build-move-table
+(defn- build-move-table
   "Builds a table of moves for the graph that looks like the sample move table.
    It currently only contains moves between a room and the hall. This does not impair the solvability of the task
    but makes the search take longer than necessary."
@@ -187,45 +187,45 @@
         moves-to-hall (into {} (map (fn [[k v]] [[(second k) (first k)] v]) moves-from-hall))]
     (merge moves-from-hall moves-to-hall)))
 
-(defn content  [[place idx] graph]
+(defn- content  [[place idx] graph]
   (nth (get graph place) idx))
 
-(defn room-finished? [room graph]
+(defn- room-finished? [room graph]
   (every? #(= room %) (get graph room)))
 
-(defn room-almost-finished? [room graph]
+(defn- room-almost-finished? [room graph]
   (and
    (not (room-finished? room graph))
    (every? #(or (= room %) (= \. %)) (get graph room))))
 
-(defn finished? [graph]
+(defn- finished? [graph]
   (and
    (every? (fn [[k _]] (room-finished? k graph)) (dissoc graph :hall))
    (every? #(= \. %) (get graph :hall))))
 
-(defn positions [v]
+(defn- positions [v]
   (vec (filter #(not (= \. (second %))) (map-indexed vector v))))
 
-(defn all-positions [graph]
+(defn- all-positions [graph]
   (apply concat (for [[k v] graph]
                   (vec (for [p (positions v)]
                          (vec (flatten [k p])))))))
 
-(defn unfinished-positions [graph]
+(defn- unfinished-positions [graph]
   (let [finished-rooms (map first (filter (fn [[k _]] (room-finished? k graph)) (dissoc graph :hall)))
         almost-finished-rooms (map first (filter (fn [[k _]] (room-almost-finished? k graph)) (dissoc graph :hall)))
         positions-in-unfinished (filter (fn [[place _ _]] (not (some #(= % place) finished-rooms))) (all-positions graph))]
     (filter (fn [[place _ _]] (not (some #(= % place) almost-finished-rooms))) positions-in-unfinished)))
 
 
-(defn occupied? [[place idx] graph]
+(defn- occupied? [[place idx] graph]
   (not (= (content [place idx] graph) \.)))
 
 (defn cost-modifier [c]
   (let [id (- (int c) (int \A))]
     (reduce * (repeat id 10))))
 
-(defn possible-moves-for [[place idx c] graph move-table]
+(defn- possible-moves-for [[place idx c] graph move-table]
   (let [candidates
         (into {} (filter (fn [[[[p1 i1] [p2 i2]]  {way :way}]]
                            (and
@@ -245,20 +245,20 @@
     (map (fn [[k v]]
            [k {:cost (* (get v :cost) (cost-modifier c)) :way (get v :way)}]) moves)))
 
-(defn possible-moves [graph move-table]
+(defn- possible-moves [graph move-table]
   (let [pos (unfinished-positions graph)
         candidates (vec (filter not-empty (apply concat (map #(possible-moves-for % graph move-table) pos))))
         into-rooms (into {} (filter (fn [[[[_ _] [p2 _]] _]] (not (= :hall p2))) candidates))
         moves (if (empty? into-rooms) candidates into-rooms)]
     (vec (sort-by #(:cost (last %)) moves))))
 
-(defn make-move [graph [[[p1 i1] [p2 i2]] _]]
+(defn- make-move [graph [[[p1 i1] [p2 i2]] _]]
   (let [c (content [p1 i1] graph)
         list-p1 (assoc (get graph p1) i1 \.)
         list-p2 (assoc (get graph p2) i2 c)]
     (assoc (assoc graph p1 list-p1) p2 list-p2)))
 
-(defn print-solution [{:keys [intermediate icosts]}]
+(defn- print-solution [{:keys [intermediate icosts]}]
   (loop [i 0]
     (when (< i (count intermediate))
       (print-graph (nth intermediate i))
@@ -266,8 +266,7 @@
       (println "\n")
       (recur (inc i)))))
 
-(defn solve-impl
-  "Recursive search for "
+(defn- solve-impl
   [{:keys [graph costs intermediate icosts] :as all} move-table current-best]
   (if (finished? graph)
     (do
@@ -298,7 +297,7 @@
                                  in-loop-current-best))))
               (recur (first remaining-moves) (rest remaining-moves) in-loop-current-best))))))))
 
-(defn solve [rooms]
+(defn- solve [rooms]
   (let [graph (build-graph rooms)
         move-table (build-move-table rooms)
         temp {:graph graph :costs 0 :intermediate [graph] :icosts [0] :solved (finished? graph)}
@@ -306,14 +305,14 @@
     (println out)))
 
 
-(defn task1 []
+(defn- task1 []
   (let [rooms {\A [\D \B]
                \B [\D \A]
                \C [\C \B]
                \D [\C \A]}]
     (solve rooms)))
 
-(defn task2 []
+(defn- task2 []
   (let [rooms {\A [\D \D \D \B]
                \B [\D \C \B \A]
                \C [\C \B \A \B]
@@ -321,8 +320,14 @@
     (solve rooms)))
 
 ; Takes really long to execute... again...
+; Prints out the correct solution but does not finish...
+; I don't want to look at this task any longer
 (defn day23 []
   (task1)
   (task2))
+
+(defn day23-precomputed []
+  (println "Solution Day 23-1: 16059 (Precomputed since the execution takes way too long)")
+  (println "Solution Day 23-2: 43117 (Precomputed since the execution takes way too long)"))
 
 (defn -main [] (day23))

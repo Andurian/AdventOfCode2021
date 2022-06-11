@@ -3,13 +3,14 @@
             [clojure.string])
   (:gen-class))
 
-(def l first)
-(def r last)
+(def ^:private l first)
+(def ^:private r last)
 
-(defn print-path [path]
+#_{:clj-kondo/ignore [:unused-private-var]}
+(defn- print-path [path]
   (println (vec (map {l \l r \r} path))))
 
-(defn split-line [line]
+(defn- split-line [line]
   (if (not (= \[ (first line)))
     (clojure.string/split line #"," 2)
     (loop [bracket-count 1
@@ -23,7 +24,7 @@
                           :else bracket-count)]
           (recur new-count (inc i)))))))
 
-(defn parse-number [line]
+(defn- parse-number [line]
   (let [parse-token (fn [token] (if (= \[ (first token))
                                   (parse-number token)
                                   (Integer/parseInt token)))
@@ -31,14 +32,14 @@
         tokens (split-line content)]
     [(parse-token (first tokens)) (parse-token (last tokens))]))
 
-(defn at [path number]
+(defn- at [path number]
   (if (empty? path) number
       ((apply comp path) number)))
 
-(defn ->key [path]
+(defn- ->key [path]
   (vec (map {l 0 r 1} (reverse path))))
 
-(defn left-of [path number]
+(defn- left-of [path number]
   (let [stump (drop-while #(= l %) path)]
     (if (empty? stump) nil
         (loop [current-path (cons l (rest stump))]
@@ -46,7 +47,7 @@
             (if (not (vector? current-node)) current-path
                 (recur (cons r current-path))))))))
 
-(defn right-of [path number]
+(defn- right-of [path number]
   (let [stump (drop-while #(= r %) path)]
     (if (empty? stump) nil
         (loop [current-path (cons r (rest stump))]
@@ -54,7 +55,7 @@
             (if (not (vector? current-node)) current-path
                 (recur (cons l current-path))))))))
 
-(defn exploding-path
+(defn- exploding-path
   ([number] (exploding-path number []))
   ([number path]
    (let [current (at path number)]
@@ -67,7 +68,7 @@
            result-left-subtree))
        :else nil))))
 
-(defn split-path
+(defn- split-path
   ([number] (split-path number []))
   ([number path]
    (let [current (at path number)]
@@ -78,7 +79,7 @@
                  (split-path number (cons r path))
                  result-left-subtree))))))
 
-(defn explode [number path]
+(defn- explode [number path]
   (let [exploding-pair (at path number)
         a (first exploding-pair)
         b (last exploding-pair)
@@ -94,13 +95,13 @@
       intermediate2
       (assoc-in intermediate2 (->key path-to-right) (+ b right-of-b)))))
 
-(defn split [number path]
+(defn- split [number path]
   (let [splitting-number (at path number)
         splitted-number [(int (Math/floor (/ splitting-number 2)))
                          (int (Math/ceil (/ splitting-number 2)))]]
     (assoc-in number (->key path) splitted-number)))
 
-(defn normalize-step [number]
+(defn- normalize-step [number]
   (let [epath (exploding-path number)]
     (if (nil? epath)
       (let [spath (split-path number)]
@@ -109,14 +110,14 @@
           (split number spath)))
       (explode number epath))))
 
-(defn normalize [number]
+(defn- normalize [number]
   (loop [current number
          stepped (normalize-step number)]
     (if (= current stepped)
       current
       (recur stepped (normalize-step stepped)))))
 
-(defn magnitude [number]
+(defn- magnitude [number]
   (if (vector? number)
     (let [a (first number)
           b (last number)
@@ -125,17 +126,17 @@
       (+ ma mb))
     number))
 
-(defn add [a b]
+(defn- add [a b]
   (normalize [a b]))
 
-(defn add-all [numbers]
+(defn- add-all [numbers]
   (loop [current (first numbers)
          to-add (rest numbers)]
     (if (empty? to-add)
       current
       (recur (add current (first to-add)) (rest to-add)))))
 
-(defn max-sum [numbers]
+(defn- max-sum [numbers]
   (loop [max-magnitude 0
          i1 0
          i2 0]
@@ -148,28 +149,20 @@
               s (magnitude (add n1 n2))]
           (recur (max s max-magnitude) (inc i1) i2))))))
 
-(defn task01 [lines]
+(defn- task01 [lines]
   (let [numbers (vec (map parse-number lines))
-        result (add-all numbers)
-        ;result (add [[[[4,3],4],4],[7,[[8,4],9]]]  [1,1])
-        ;m [[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]] [7,[[[3,7],[4,3]],[[6,3],[8,8]]]] ]
-        ]
-    (println result)
-    (println (magnitude result));
-    ))
+        result (add-all numbers)]
+    (magnitude result)))
 
-(defn task02 [lines]
-  (let [numbers (vec (map parse-number lines))
-        m (max-sum numbers)]
-    (println m)))
+(defn- task02 [lines]
+  (let [numbers (vec (map parse-number lines))]
+    (max-sum numbers)))
 
 (defn day18
-  ([] (println "Using default input")
-      (day18 "input_day_18.txt"))
+  ([] (day18 "input_day_18.txt"))
   ([filename]
    (let [lines (read-lines filename)]
-     (time (task01 lines));
-     (time (task02 lines));
-     )))
+     (println "Solution Day 18-1:" (task01 lines))
+     (println "Solution Day 18-2:" (task02 lines)))))
 
-(defn -main [] (day18))
+(defn -main [] (time (day18)))

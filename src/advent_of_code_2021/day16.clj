@@ -3,32 +3,32 @@
             [clojure.string])
   (:gen-class))
 
-(def hexmap {\0 "0000"
-             \1 "0001"
-             \2 "0010"
-             \3 "0011"
-             \4 "0100"
-             \5 "0101"
-             \6 "0110"
-             \7 "0111"
-             \8 "1000"
-             \9 "1001"
-             \A "1010"
-             \B "1011"
-             \C "1100"
-             \D "1101"
-             \E "1110"
-             \F "1111"})
+(def ^:private hexmap {\0 "0000"
+                       \1 "0001"
+                       \2 "0010"
+                       \3 "0011"
+                       \4 "0100"
+                       \5 "0101"
+                       \6 "0110"
+                       \7 "0111"
+                       \8 "1000"
+                       \9 "1001"
+                       \A "1010"
+                       \B "1011"
+                       \C "1100"
+                       \D "1101"
+                       \E "1110"
+                       \F "1111"})
 
-(defn ->binary [input]
+(defn- ->binary [input]
   (clojure.string/join (map hexmap input)))
 
-(defn ->decimal [binary-string]
+(defn- ->decimal [binary-string]
   (Long/parseLong binary-string 2))
 
 (declare parse-package)
 
-(defn parse-literal [input]
+(defn- parse-literal [input]
   (loop [current-packs []
          i 0]
     (let [pack-str (subs input (* i 5) (* (inc i) 5))
@@ -39,7 +39,7 @@
          :remaining (subs input (* 5 (inc i)))}
         (recur (conj current-packs value-str) (inc i))))))
 
-(defn parse-operator [input]
+(defn- parse-operator [input]
   (let [parse-operator-num-bits
         (fn [input]
           (let [num-bits (->decimal (subs input 0 15))
@@ -65,7 +65,7 @@
       (parse-operator-num-bits (subs input 1))
       (parse-operator-num-packages (subs input 1)))))
 
-(defn parse-package [input]
+(defn- parse-package [input]
   (let [version (->decimal (subs input 0 3))
         type (->decimal (subs input 3 6))
         value
@@ -77,14 +77,14 @@
      :value (:value value)
      :remaining (:remaining value)}))
 
-(defn sum-version-numbers
+(defn- sum-version-numbers
   ([input] (sum-version-numbers input 0))
   ([input current]
    (if (vector? (:value input))
      (apply + (concat [current (:version input)] (map sum-version-numbers (:value input))))
      (+ current (:version input)))))
 
-(defn calc-value [package]
+(defn- calc-value [package]
   (let [type (:type package)
         value (:value package)]
     (if (= 4 type)
@@ -106,21 +106,19 @@
           (= 7 type) ; equal
           (if (= (first contained-values) (last contained-values)) 1 0))))))
 
-(defn task01 [input]
+(defn- task01 [input]
   (let [package (parse-package (->binary input))]
-    (println "Sum of all version numbers:" (sum-version-numbers package))))
+    (println "Solution Day 16-1:" (sum-version-numbers package))))
 
-(defn task02 [input]
+(defn- task02 [input]
   (let [package (parse-package (->binary input))]
-    (println "Expression evaluates to:" (calc-value package))))
+    (println "Solution Day 16-2:" (calc-value package))))
 
 (defn day16
-  ([] (println "Using default input")
-      (day16 "input_day_16.txt"))
+  ([] (day16 "input_day_16.txt"))
   ([filename]
    (let [input (first (read-lines filename))]
-     (time (task01 input));
-     (time (task02 input));
-     )))
+     (task01 input)
+     (task02 input))))
 
-(defn -main [] (day16))
+(defn -main [] (time (day16)))
