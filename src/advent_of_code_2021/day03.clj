@@ -1,5 +1,6 @@
 (ns advent-of-code-2021.day03
-  (:require [advent-of-code-2021.util :refer [read-lines]])
+  (:require [advent-of-code-2021.util :refer [read-lines]]
+            [clojure.string])
   (:gen-class))
 
 (defn transpose [m]
